@@ -1,0 +1,118 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>VITA 3D ↔ VITA Eşleştirme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    :root { --accent:#007AFF; --bg:#f5f7fb; }
+    body {
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background:var(--bg); color:#111;
+    }
+    .card {
+      width:min(92vw,560px); background:#fff; border-radius:16px; padding:28px 22px;
+      box-shadow:0 10px 30px rgba(0,0,0,.08); text-align:center;
+    }
+    h1 { font-size:28px; margin:0 0 14px; }
+    p.helper { font-size:15px; color:#555; margin:0 0 18px; }
+    .row { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+    input[type="text"]{
+      padding:16px; font-size:22px; width:320px; max-width:82vw;
+      border:1px solid #d7dbe7; border-radius:10px; outline:none; text-transform:uppercase;
+    }
+    input[type="text"]:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,122,255,.12); }
+    button {
+      padding:14px 18px; font-size:18px; border:none; border-radius:10px; color:#fff; background:var(--accent);
+    }
+    .secondary { background:#6a7a9a; }
+    #result { margin-top:18px; font-size:24px; font-weight:700; min-height:28px; }
+    .note { margin-top:10px; font-size:13px; color:#666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>VITA 3D → VITA</h1>
+    <p class="helper">Örn: <b>2M2</b> yaz veya dikteyle “<i>üç me bir</i>” de. Sistem otomatik <b>3M1</b> yapar.</p>
+
+    <div class="row">
+      <input id="code" type="text" placeholder="örn. 2M2" inputmode="latin" autocomplete="off" autocapitalize="characters">
+      <button id="btn" onclick="findMatch()">Bul</button>
+    </div>
+
+    <div id="result"></div>
+    <div class="note">İpucu: iPhone’da klavye mikrofonuyla konuşursan “üç” → <b>3</b>, “buçuk” → <b>,5</b> olarak otomatik dönüştürülür.</div>
+  </div>
+
+  <script>
+    // Eşleştirme tablosu
+    const mapping = {
+      "1M1": "BL4", "1M2": "A1", "2L1,5": "A1", "2L2,5": "B2", "2R1,5": "A1",
+      "2R2,5": "A3", "3M3": "B3", "2M1": "A1", "2M2": "A2", "2M3": "A3",
+      "3L1,5": "D3 DENTİN+D2", "3R2,5": "A3,5", "3M2": "A3", "3R1,5": "D2",
+      "3L2,5": "B3", "4M2": "A3,5", "4L1,5": "C2", "4M1": "D2", "4L2,5": "A4",
+      "4R1,5": "D3OPAK+A3 DENTİN", "3M1": "C1OPAK+D3 DENTİN", "4M3": "A4",
+      "A0": "BL4", "B0": "BL2/BL3 DENTİN", "OM1": "BL1", "5M1": "A4+KIZIL"
+    };
+
+    // Türkçe konuşmayı/ dikteyi koda çeviren akıllı dönüştürücü
+    function normalizeToCode(input) {
+      if (!input) return "";
+      let s = (""+input).toLowerCase();
+
+      // Sık gelen Türkçe karakter varyasyonlarını normalize et
+      s = s.replace(/ı/g, "i").replace(/ş/g, "s").replace(/ğ/g, "g").replace(/ç/g, "c").replace(/ö/g, "o").replace(/ü/g, "u");
+
+      // Kelime tabanlı sayi dönüşümleri
+      const numWords = [
+        ["dokuz","9"],["sekiz","8"],["yedi","7"],["alti","6"],["bes","5"],["dort","4"],["uc","3"],["iki","2"],["bir","1"],["sifir","0"]
+      ];
+      numWords.forEach(([w,n]) => { s = s.replace(new RegExp("\b"+w+"\b","g"), n); });
+
+      // Harf heceleri (konuşmada "me" -> m, "el" -> l, "er" -> r)
+      s = s.replace(/me/g,"m").replace(/em/g,"m").replace(/el/g,"l").replace(/er/g,"r");
+
+      // "virgul"/"nokta"/"bucuk" -> ,5
+      s = s.replace(/virgul/g, ",").replace(/nokta/g, ",");
+      s = s.replace(/bucuk/g, ",5");
+
+      // Boşluk, tire, nokta vb. temizle
+      s = s.replace(/[\s\.\-_/]/g, "");
+
+      // Özel desenler: L/R/M sonrası 1,5 söylemleri
+      // (örn. "2l1,5" zaten ,5'e dönüştü ise koru)
+      // Baş harfleri büyütmek için önce uppercase edelim
+      s = s.toUpperCase();
+
+      return s;
+    }
+
+    function findMatch() {
+      const raw = document.getElementById("code").value;
+      const code = normalizeToCode(raw);
+      document.getElementById("code").value = code; // inputu da normalize edilmiş göster
+      const result = mapping[code];
+      document.getElementById("result").innerText = result ? `${code} → ${result}` : "Eşleşme bulunamadı.";
+    }
+
+    // Kullanıcı yazarken canlı normalize et (gecikmeli)
+    let typingTimer;
+    const inputEl = document.getElementById("code");
+    inputEl.addEventListener("input", () => {
+      clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => {
+        const caretEnd = inputEl.selectionEnd;
+        inputEl.value = normalizeToCode(inputEl.value);
+        inputEl.setSelectionRange(caretEnd, caretEnd);
+      }, 120);
+    });
+
+    // Enter ile tetikleme
+    inputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { findMatch(); }
+    });
+  </script>
+</body>
+</html>
