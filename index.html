@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>VITA 3D ↔ VITA Eşleştirme</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px 20px;
+      background-color: #f7f7f7;
+    }
+    h2 {
+      font-size: 28px;
+      margin-bottom: 30px;
+    }
+    input {
+      padding: 15px;
+      font-size: 20px;
+      width: 80%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    button {
+      padding: 15px 20px;
+      font-size: 18px;
+      margin: 10px;
+      border: none;
+      border-radius: 6px;
+      background-color: #007AFF;
+      color: white;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 22px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>VITA 3D → VITA Renk Eşleştirici</h2>
+  <input type="text" id="inputCode" placeholder="örn. 2M2">
+  <div>
+    <button onclick="findMatch()">Bul</button>
+    <button onclick="startVoice()">🎤 Sesle Ara</button>
+  </div>
+  <div id="result"></div>
+
+  <script>
+    const mapping = {
+      "1M1": "BL4", "1M2": "A1", "2L1,5": "A1", "2L2,5": "B2", "2R1,5": "A1",
+      "2R2,5": "A3", "3M3": "B3", "2M1": "A1", "2M2": "A2", "2M3": "A3",
+      "3L1,5": "D3 DENTİN+D2", "3R2,5": "A3,5", "3M2": "A3", "3R1,5": "D2",
+      "3L2,5": "B3", "4M2": "A3,5", "4L1,5": "C2", "4M1": "D2", "4L2,5": "A4",
+      "4R1,5": "D3OPAK+A3 DENTİN", "3M1": "C1OPAK+D3 DENTİN", "4M3": "A4",
+      "A0": "BL4", "B0": "BL2/BL3 DENTİN", "OM1": "BL1", "5M1": "A4+KIZIL"
+    };
+
+    function findMatch() {
+      const code = document.getElementById("inputCode").value.toUpperCase().trim();
+      const result = mapping[code];
+      document.getElementById("result").innerText = result ? `${code} → ${result}` : "Eşleşme bulunamadı.";
+    }
+
+    function startVoice() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = 'tr-TR';
+      recognition.interimResults = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onresult = function(event) {
+        const voiceInput = event.results[0][0].transcript.toUpperCase().replace(/\s+/g, '');
+        document.getElementById("inputCode").value = voiceInput;
+        findMatch();
+      };
+
+      recognition.onerror = function(event) {
+        document.getElementById("result").innerText = "Ses algılanamadı.";
+      };
+
+      recognition.start();
+    }
+  </script>
+</body>
+</html>
